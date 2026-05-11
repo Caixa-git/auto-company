@@ -1,0 +1,42 @@
+# Auto-Company-System 설정 예제
+# 실제 사용 시 config.yaml로 복사하고 값을 채우세요.
+
+llm:
+  api_key: "YOUR_DEEPSEEK_API_KEY"
+  base_url: "https://api.deepseek.com"
+  model: "deepseek-v4-flash"
+  max_tokens: 4096
+  temperature: 0.7
+
+system:
+  poll_interval_seconds: 5
+  db_path: "acs.db"
+  log_level: "INFO"
+  initial_capital: 0
+
+  tier0_sectors:
+    - "프롬프트 판매"
+    - "AI 콘텐츠 생성"
+    - "자동화 스크립트"
+    - "정보 중개"
+
+  target:
+    region: "한국"
+    language: "한국어"
+    customer_type: "국내 스타트업, 프리랜서, 소규모 사업자"
+    contact_channels: "이메일, 카카오톡 오픈채팅"
+    tone: "정중하되 간결하게. 한국 비즈니스 문화에 맞게."
+
+personas:
+  agency_agents_path: ""
+
+email:
+  sender: "YOUR_EMAIL@gmail.com"
+  app_password: "YOUR_APP_PASSWORD"
+  owner_email: "YOUR_EMAIL@gmail.com"
+
+hotl:
+  discord:
+    enabled: false
+    token: "YOUR_DISCORD_BOT_TOKEN"
+    owner_id: 0

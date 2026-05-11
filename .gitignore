@@ -1,0 +1,27 @@
+# 민감 정보 (API 키, 토큰)
+config.yaml
+
+# 로그
+logs/
+*.log
+
+# Python 캐시
+__pycache__/
+*.pyc
+
+# Windows ADS (Zone.Identifier)
+*:Zone.Identifier
+
+# 빌드 결과물
+build/
+dist/
+*.spec
+
+# 데이터베이스
+*.db
+*.db-shm
+*.db-wal
+
+# Windows 실행 스크립트
+*.bat
+*.vbs
