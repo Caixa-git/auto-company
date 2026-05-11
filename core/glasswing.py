@@ -7,6 +7,7 @@ Glasswing Autonomy Framework.
 import json
 import logging
 import sqlite3
+import threading
 from dataclasses import dataclass
 from typing import Optional
 
@@ -95,6 +96,7 @@ DEMOTION_CRITERIA = {
 class GlasswingManager:
     def __init__(self, db_path: str):
         self.db_path = db_path
+        self._lock = threading.Lock()
 
     @property
     def _conn(self) -> sqlite3.Connection:
@@ -167,48 +169,51 @@ class GlasswingManager:
         회고 결과 기록 → 자동 승급/강등 평가.
         outcome: 'success' | 'failure'
         """
-        state = self._load_state()
-        current_stage = state.get("stage", 1)
+        with self._lock:
+            state = self._load_state()
+            current_stage = state.get("stage", 1)
 
-        if outcome == "success":
-            state["total_successes"] = state.get("total_successes", 0) + 1
-            state["consecutive_failures"] = 0
-        else:
-            state["total_failures"] = state.get("total_failures", 0) + 1
-            state["consecutive_failures"] = state.get("consecutive_failures", 0) + 1
+            if outcome == "success":
+                state["total_successes"] = state.get("total_successes", 0) + 1
+                state["consecutive_failures"] = 0
+            else:
+                state["total_failures"] = state.get("total_failures", 0) + 1
+                state["consecutive_failures"] = state.get("consecutive_failures", 0) + 1
 
-        if had_budget_crisis:
-            state["budget_crisis_count"] = state.get("budget_crisis_count", 0) + 1
+            if had_budget_crisis:
+                state["budget_crisis_count"] = state.get("budget_crisis_count", 0) + 1
 
-        # 강등 체크
-        new_stage = self._evaluate_demotion(current_stage, state)
-        if new_stage < current_stage:
-            state["stage"] = new_stage
-            logger.warning(f"[Glasswing] Stage 강등: {current_stage} → {new_stage}")
+            # 강등 체크
+            new_stage = self._evaluate_demotion(current_stage, state)
+            if new_stage < current_stage:
+                state["stage"] = new_stage
+                logger.warning(f"[Glasswing] Stage 강등: {current_stage} → {new_stage}")
+                self._save_state(state)
+                return new_stage, "demotion"
+
+            # 승급 체크
+            new_stage = self._evaluate_promotion(current_stage, state)
+            if new_stage > current_stage:
+                state["stage"] = new_stage
+                state["budget_crisis_count"] = 0  # 승급 시 위기 카운트 리셋
+                logger.info(f"[Glasswing] Stage 승급: {current_stage} → {new_stage}")
+                self._save_state(state)
+                return new_stage, "promotion"
+
             self._save_state(state)
-            return new_stage, "demotion"
-
-        # 승급 체크
-        new_stage = self._evaluate_promotion(current_stage, state)
-        if new_stage > current_stage:
-            state["stage"] = new_stage
-            logger.info(f"[Glasswing] Stage 승급: {current_stage} → {new_stage}")
-            self._save_state(state)
-            return new_stage, "promotion"
-
-        self._save_state(state)
-        return current_stage, "unchanged"
+            return current_stage, "unchanged"
 
     def set_stage(self, stage: int, reason: str = "manual"):
         """위진수가 수동으로 단계 설정."""
-        stage = max(0, min(4, stage))
-        state = self._load_state()
-        old_stage = state.get("stage", 1)
-        state["stage"] = stage
-        state["last_manual_override"] = reason
-        self._save_state(state)
-        logger.info(f"[Glasswing] 수동 설정: Stage {old_stage} → {stage} ({reason})")
-        return stage
+        with self._lock:
+            stage = max(0, min(4, stage))
+            state = self._load_state()
+            old_stage = state.get("stage", 1)
+            state["stage"] = stage
+            state["last_manual_override"] = reason
+            self._save_state(state)
+            logger.info(f"[Glasswing] 수동 설정: Stage {old_stage} → {stage} ({reason})")
+            return stage
 
     def _evaluate_promotion(self, current_stage: int, state: dict) -> int:
         if current_stage >= 4:
