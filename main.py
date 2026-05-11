@@ -244,8 +244,25 @@ class ACS:
 # ──────────────────────────────────────────
 
 def main():
+    # .env → os.environ 로드
+    from dotenv import load_dotenv
+    load_dotenv()
+
+    import os, re
+
     with open("config.yaml", encoding="utf-8") as f:
-        config = yaml.safe_load(f)
+        raw = f.read()
+
+    # ${ENV_VAR} → os.getenv 치환
+    def _replace_env(match):
+        var = match.group(1)
+        val = os.getenv(var)
+        if val is None:
+            raise ValueError(f"Environment variable {var} is not set in .env")
+        return val
+
+    config_text = re.sub(r'\$\{(\w+)\}', _replace_env, raw)
+    config = yaml.safe_load(config_text)
 
     acs = ACS(config)
     acs.run()

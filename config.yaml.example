@@ -1,8 +1,9 @@
 # Auto-Company-System 설정 예제
-# 실제 사용 시 config.yaml로 복사하고 값을 채우세요.
+# 실제 사용 시 config.yaml로 복사하고 .env 파일을 설정하세요.
+# .env 파일 템플릿은 아래 주석 참고.
 
 llm:
-  api_key: "YOUR_DEEPSEEK_API_KEY"
+  api_key: ${DEEPSEEK_API_KEY}
   base_url: "https://api.deepseek.com"
   model: "deepseek-v4-flash"
   max_tokens: 4096
@@ -28,15 +29,26 @@ system:
     tone: "정중하되 간결하게. 한국 비즈니스 문화에 맞게."
 
 personas:
-  agency_agents_path: ""
+  agency_agents_path: ${AGENCY_AGENTS_PATH}
 
 email:
-  sender: "YOUR_EMAIL@gmail.com"
-  app_password: "YOUR_APP_PASSWORD"
-  owner_email: "YOUR_EMAIL@gmail.com"
+  sender: ${EMAIL_SENDER}
+  app_password: ${EMAIL_APP_PASSWORD}
+  owner_email: ${EMAIL_OWNER}
 
 hotl:
   discord:
     enabled: false
-    token: "YOUR_DISCORD_BOT_TOKEN"
-    owner_id: 0
+    token: ${DISCORD_TOKEN}
+    owner_id: ${DISCORD_OWNER_ID}
+
+# =====================
+# .env 파일 템플릿
+# =====================
+# DEEPSEEK_API_KEY=sk-xxxxx
+# EMAIL_SENDER=your-email@gmail.com
+# EMAIL_APP_PASSWORD=xxxx xxxx xxxx xxxx
+# EMAIL_OWNER=your-email@gmail.com
+# DISCORD_TOKEN=MTUw...
+# DISCORD_OWNER_ID=123456
+# AGENCY_AGENTS_PATH=C:/path/to/agency-agents
