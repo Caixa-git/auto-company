@@ -149,31 +149,28 @@ class MessageBus:
 
     def receive(self, agent_name: str, limit: int = 10) -> list[Message]:
         """
-        수신 대기 중인 메시지 가져오기.
-        우선순위(낮은 숫자) 순, 오래된 것 순.
-        가져오는 동시에 status를 'processing'으로 변경.
+        수신 대기 중인 메시지 원자적 할당.
+        SQLite 3.35+ UPDATE ... RETURNING 으로 SELECT + UPDATE 동시 처리.
         """
-        rows = self.conn.execute(
-            """
-            SELECT id, from_agent, to_agent, msg_type, priority, payload, status, created_at
-            FROM messages
-            WHERE to_agent = ? AND status = 'pending'
-            ORDER BY priority ASC, id ASC
-            LIMIT ?
-            """,
-            (agent_name, limit),
-        ).fetchall()
+        with transaction(self.conn):
+            cur = self.conn.execute(
+                """
+                UPDATE messages SET status='processing', updated_at=datetime('now')
+                WHERE id IN (
+                    SELECT id FROM messages
+                    WHERE to_agent = ? AND status = 'pending'
+                    ORDER BY priority ASC, id ASC
+                    LIMIT ?
+                )
+                RETURNING id, from_agent, to_agent, msg_type, priority,
+                          payload, status, created_at
+                """,
+                (agent_name, limit),
+            )
+            rows = cur.fetchall()
 
         if not rows:
             return []
-
-        ids = [r["id"] for r in rows]
-        with transaction(self.conn):
-            self.conn.execute(
-                f"UPDATE messages SET status='processing', updated_at=datetime('now') "
-                f"WHERE id IN ({','.join('?' * len(ids))})",
-                ids,
-            )
 
         messages = [
             Message(
