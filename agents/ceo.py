@@ -211,7 +211,8 @@ Risk Stance    : 리스크 허용도 {self.personality['risk_tolerance']} (0=낮
 
         self.sector = decision.get("selected_sector")
         self.brand_name = decision.get("brand_name", "")
-        self.update_state(sector=self.sector, brand_name=self.brand_name, plan=decision.get("plan"))
+        self._pending_plan = decision.get("plan")  # 승인 응답 시 사용
+        self.update_state(sector=self.sector, brand_name=self.brand_name, plan=self._pending_plan)
         logger.info(f"[{self.name}] 브랜드명: {self.brand_name}")
 
         # Board에 업종 승인 요청
@@ -498,10 +499,11 @@ CTA 방식: {email_rules.get("cta_good", "15분 대화 제안")}
             logger.info(f"[{self.name}] 승인됨: {reason}")
             # 업종 승인이면 실행 단계로
             if self.stage == "planning":
+                plan = getattr(self, '_pending_plan', {}) or {}
                 self.send(
                     to=self.name,
                     msg_type=MsgType.TASK,
-                    payload={"task": "execute_plan", "plan": self.bus.get_agent_state(self.name)},
+                    payload={"task": "execute_plan", "plan": plan},
                 )
             return f"승인 수신: {reason}"
         else:
